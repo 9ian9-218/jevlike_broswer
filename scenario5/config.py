@@ -1,0 +1,61 @@
+import os
+import shutil
+from pathlib import Path
+from dotenv import load_dotenv
+
+# 加载 .env 文件（如果存在）
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
+
+def find_browser_path() -> str:
+    """自动探测本机 Chrome 或 Edge 浏览器路径"""
+    env_path = os.getenv("CHROME_PATH")
+    if env_path and os.path.exists(env_path):
+        return env_path
+
+    candidates = [
+        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+        os.path.expandvars(r"%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe"),
+        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+        os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\Edge\Application\msedge.exe"),
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+
+    which_chrome = shutil.which("chrome") or shutil.which("google-chrome") or shutil.which("msedge")
+    if which_chrome:
+        return which_chrome
+
+    return r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+
+
+class Settings:
+    # 浏览器参数
+    BROWSER_PATH: str = find_browser_path()
+    REMOTE_DEBUG_PORT: int = int(os.getenv("REMOTE_DEBUG_PORT", "9222"))
+    HEADLESS: bool = os.getenv("HEADLESS", "false").lower() in ("true", "1", "yes")
+    HIGHLIGHT_ELEMENT: bool = os.getenv("HIGHLIGHT_ELEMENT", "true").lower() in ("true", "1", "yes")
+    HIGHLIGHT_DURATION: float = float(os.getenv("HIGHLIGHT_DURATION", "0.3"))
+
+    # 快轨决策配置 (auto | laya_local | laya | jev | heuristic)
+    FAST_PATH_MODE: str = os.getenv("FAST_PATH_MODE", "auto")
+    LOCAL_MODEL_PATH: str = os.getenv("LOCAL_MODEL_PATH", str(Path(__file__).resolve().parent.parent / "models" / "laya-browser"))
+    TYPESAFE_API_KEY: str = os.getenv("TYPESAFE_API_KEY", "")
+    TYPESAFE_BASE_URL: str = os.getenv("TYPESAFE_BASE_URL", "https://api.typesafe.ai/v1")
+    LAYA_BASE_URL: str = os.getenv("LAYA_BASE_URL", "http://127.0.0.1:8791/v1")
+
+    # 慢轨生成配置 (Codex / OpenAI 兼容接口)
+    SLOW_PATH_API_KEY: str = os.getenv("SLOW_PATH_API_KEY") or os.getenv("OPENAI_API_KEY", "")
+    SLOW_PATH_BASE_URL: str = os.getenv("SLOW_PATH_BASE_URL", "https://api.openai.com/v1")
+    SLOW_PATH_MODEL: str = os.getenv("SLOW_PATH_MODEL", "gpt-4o-mini")
+
+    # 状态机超参数
+    MAX_STEPS: int = int(os.getenv("MAX_STEPS", "60"))
+    ACTION_TIMEOUT: float = float(os.getenv("ACTION_TIMEOUT", "15.0"))
+    STEP_DELAY: float = float(os.getenv("STEP_DELAY", "0.5"))
+
+
+settings = Settings()
